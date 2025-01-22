@@ -3,30 +3,26 @@ import axios from "axios";
 
 const Form = ({ setFullData }) => {
   const [formData, setFormData] = useState({
-    accessTime: "", // Time input
-    accessDate: "", // Date input
-    algo_status: "0", // Dropdown for Energy Saving Mode
-    total_kwh: "", // Input for kWh
+    accessTime: "",
+    accessDate: "",
+    algo_status: "0",
+    total_kwh: "",
   });
 
   const [serialNo, setSerialNo] = useState("");
 
   useEffect(() => {
-    // Generate a random serial number on mount
     const generateSerialNo = () =>
       Math.floor(100000 + Math.random() * 900000).toString();
     setSerialNo(generateSerialNo);
-
     fetchFullData();
   }, []);
 
   const fetchFullData = async () => {
     try {
-      console.log("Fetching full data...");
       const response = await axios.get(
         "https://ennery-chart.onrender.com/api/chart-data/fetch"
       );
-
       const transformedData = response.data.map((d) => ({
         ...d,
         createdAt: new Date(d.createdAt.$date).toLocaleDateString("en-US", {
@@ -35,9 +31,6 @@ const Form = ({ setFullData }) => {
           year: "numeric",
         }),
       }));
-
-      console.log("Fetched data:", transformedData);
-
       setFullData(transformedData);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -46,7 +39,6 @@ const Form = ({ setFullData }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log(`Handling change: ${name} = ${value}`);
     setFormData((prevState) => ({
       ...prevState,
       [name]: value,
@@ -55,66 +47,52 @@ const Form = ({ setFullData }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted");
 
-    // Prepare the data to be sent in the request
     const dataToSubmit = {
-      serialNo: serialNo, // Random serial number
-      clientID: "64ba1aedf4bfdb003572d56a", // Use static clientID, based on the provided test data
-      deviceMapID: "64dcb84fb1a15041673d8e91", // Use static deviceMapID
-      devices: ["64dcb2eff4b9f70034e50a7c"], // Use static device IDs
-      total_kwh: parseFloat(formData.total_kwh) || 0, // Ensure that total_kwh is numeric
-      ac_run_hrs: 1.48, // Use static data as provided in the example
-      ac_fan_hrs: 0, // Static value
-      algo_status: formData.algo_status === "1" ? 1 : 0, // Map '1' to active energy saving mode
-      billing_ammount: 40.25, // Static value from test data
-      cost_reduction: 0, // Static value
+      serialNo: serialNo,
+      clientID: "64ba1aedf4bfdb003572d56a",
+      deviceMapID: "64dcb84fb1a15041673d8e91",
+      devices: ["64dcb2eff4b9f70034e50a7c"],
+      total_kwh: parseFloat(formData.total_kwh) || 0,
+      ac_run_hrs: 1.48,
+      ac_fan_hrs: 0,
+      algo_status: formData.algo_status === "1" ? 1 : 0,
+      billing_ammount: 40.25,
+      cost_reduction: 0,
       energy_savings: {
-        savings_percent: 0, // Static value
-        ref_kwh: 0, // Static value
-        us_meter: 0, // Static value
-        us_calc: 0, // Static value
-        inv_factor: 0, // Static value
+        savings_percent: 0,
+        ref_kwh: 0,
+        us_meter: 0,
+        us_calc: 0,
+        inv_factor: 0,
       },
-      mitigated_co2: 0, // Static value
+      mitigated_co2: 0,
       weather: {
-        max_temp: 28.9, // Static value
-        min_temp: 27.2, // Static value
+        max_temp: 28.9,
+        min_temp: 27.2,
       },
     };
 
-    console.log("Data to submit:", dataToSubmit);
-
     try {
-      // Perform the POST request to import data
-      const response = await axios.post(
+      await axios.post(
         "https://ennery-chart.onrender.com/api/chart-data/import",
         dataToSubmit,
         { headers: { "Content-Type": "application/json" } }
       );
-
-      // Log the successful response
-      console.log("Data successfully posted:", response.data);
-
-      // Fetch updated data after the submission (useful for refreshing the view)
       fetchFullData();
-
-      // Reset the form fields after submission
       setFormData({
         accessTime: "",
         accessDate: "",
-        algo_status: "0", // Default algo_status
-        total_kwh: "", // Reset the kWh value input
+        algo_status: "0",
+        total_kwh: "",
       });
     } catch (error) {
-      // Log the error details
       console.error(
         "Error submitting data:",
         error.response ? error.response.data : error.message
       );
     }
   };
-
 
   return (
     <div className="min-h-screen p-6 flex items-center justify-center">

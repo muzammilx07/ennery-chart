@@ -17,20 +17,17 @@ const EnergyBarChart = ({ fullData }) => {
   const [showEnergySavingModeOff, setShowEnergySavingModeOff] = useState(true);
 
   useEffect(() => {
-    const energyData = fullData; 
-    console.log("ss",fullData);
+    if (fullData) {
+      const labels = fullData.map((d) =>
+        new Date(d.updatedAt.$date || d.updatedAt).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      );
 
-    if (energyData) {
-      const labels = energyData.map((d) =>
-      new Date(d.updatedAt.$date || d.updatedAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    );
-
-      const valuesOn = energyData.map((d) => d.total_kwh * 0.6);
-      const valuesOff = energyData.map((d) => d.total_kwh * 0.4);
+      const valuesOn = fullData.map((d) => d.total_kwh * 0.6);
+      const valuesOff = fullData.map((d) => d.total_kwh * 0.4);
 
       setChartData({
         labels,
@@ -50,7 +47,7 @@ const EnergyBarChart = ({ fullData }) => {
         ],
       });
     }
-  }, [fullData]); 
+  }, [fullData]);
 
   const options = {
     responsive: true,
