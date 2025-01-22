@@ -1,117 +1,124 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-
-
-
 const Form = ({ setFullData }) => {
   const [formData, setFormData] = useState({
-    clientID: "",
-    deviceMapID: "",
-    devices: [],
-    total_kwh: "",
-    ac_run_hrs: "",
-    ac_fan_hrs: "",
-    algo_status: "0", // Default selection
-    billing_ammount: "",
-    cost_reduction: "",
-    energy_savings: {
-      savings_percent: "",
-      ref_kwh: "",
-      us_meter: "",
-      us_calc: "",
-      inv_factor: "",
-    },
-    mitigated_co2: "",
-    weather: {
-      max_temp: "",
-      min_temp: "",
-    },
+    accessTime: "", // Time input
+    accessDate: "", // Date input
+    algo_status: "0", // Dropdown for Energy Saving Mode
+    total_kwh: "", // Input for kWh
   });
 
   const [serialNo, setSerialNo] = useState("");
 
   useEffect(() => {
-    const generateSerialNo = Math.floor(100000 + Math.random() * 900000);
+    // Generate a random serial number on mount
+    const generateSerialNo = () =>
+      Math.floor(100000 + Math.random() * 900000).toString();
     setSerialNo(generateSerialNo);
 
-    // Fetch full data immediately
     fetchFullData();
   }, []);
 
   const fetchFullData = async () => {
     try {
+      console.log("Fetching full data...");
       const response = await axios.get(
         "https://ennery-chart.onrender.com/api/chart-data/fetch"
       );
-      setFullData(response.data); // Pass fetched full data to parent component
+
+      const transformedData = response.data.map((d) => ({
+        ...d,
+        createdAt: new Date(d.createdAt.$date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+      }));
+
+      console.log("Fetched data:", transformedData);
+
+      setFullData(transformedData);
     } catch (error) {
-      console.error("Error fetching full data:", error);
+      console.error("Error fetching data:", error);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    if (name.includes(".")) {
-      const keys = name.split(".");
-      setFormData((prevState) => {
-        const nestedField = { ...prevState[keys[0]] };
-        nestedField[keys[1]] = value;
-        return { ...prevState, [keys[0]]: nestedField };
-      });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
+    console.log(`Handling change: ${name} = ${value}`);
+    setFormData((prevState) => ({
+      ...prevState,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form submitted");
 
-    const dataToSubmit = { ...formData, serialNo };
+    // Prepare the data to be sent in the request
+    const dataToSubmit = {
+      serialNo: serialNo, // Random serial number
+      clientID: "64ba1aedf4bfdb003572d56a", // Use static clientID, based on the provided test data
+      deviceMapID: "64dcb84fb1a15041673d8e91", // Use static deviceMapID
+      devices: ["64dcb2eff4b9f70034e50a7c"], // Use static device IDs
+      total_kwh: parseFloat(formData.total_kwh) || 0, // Ensure that total_kwh is numeric
+      ac_run_hrs: 1.48, // Use static data as provided in the example
+      ac_fan_hrs: 0, // Static value
+      algo_status: formData.algo_status === "1" ? 1 : 0, // Map '1' to active energy saving mode
+      billing_ammount: 40.25, // Static value from test data
+      cost_reduction: 0, // Static value
+      energy_savings: {
+        savings_percent: 0, // Static value
+        ref_kwh: 0, // Static value
+        us_meter: 0, // Static value
+        us_calc: 0, // Static value
+        inv_factor: 0, // Static value
+      },
+      mitigated_co2: 0, // Static value
+      weather: {
+        max_temp: 28.9, // Static value
+        min_temp: 27.2, // Static value
+      },
+    };
+
+    console.log("Data to submit:", dataToSubmit);
 
     try {
-      await axios.post(
+      // Perform the POST request to import data
+      const response = await axios.post(
         "https://ennery-chart.onrender.com/api/chart-data/import",
         dataToSubmit,
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Fetch the latest full data
+      // Log the successful response
+      console.log("Data successfully posted:", response.data);
+
+      // Fetch updated data after the submission (useful for refreshing the view)
       fetchFullData();
 
-      // Optionally, reset form fields
+      // Reset the form fields after submission
       setFormData({
-        clientID: "",
-        deviceMapID: "",
-        devices: [],
-        total_kwh: "",
-        ac_run_hrs: "",
-        ac_fan_hrs: "",
-        algo_status: "0",
-        billing_ammount: "",
-        cost_reduction: "",
-        energy_savings: {
-          savings_percent: "",
-          ref_kwh: "",
-          us_meter: "",
-          us_calc: "",
-          inv_factor: "",
-        },
-        mitigated_co2: "",
-        weather: {
-          max_temp: "",
-          min_temp: "",
-        },
+        accessTime: "",
+        accessDate: "",
+        algo_status: "0", // Default algo_status
+        total_kwh: "", // Reset the kWh value input
       });
     } catch (error) {
-      console.error("Error submitting data:", error.response || error.message);
+      // Log the error details
+      console.error(
+        "Error submitting data:",
+        error.response ? error.response.data : error.message
+      );
     }
   };
 
+
   return (
     <div className="min-h-screen p-6 flex items-center justify-center">
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-2xl">
+      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-lg">
         <h1 className="text-2xl font-bold text-gray-700 mb-6">
           Chart Data Submission Form
         </h1>
@@ -129,12 +136,12 @@ const Form = ({ setFullData }) => {
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-600">
-              Client ID:
+              Access Time:
             </label>
             <input
-              type="text"
-              name="clientID"
-              value={formData.clientID}
+              type="time"
+              name="accessTime"
+              value={formData.accessTime}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
@@ -142,12 +149,12 @@ const Form = ({ setFullData }) => {
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-600">
-              Device Map ID:
+              Access Date:
             </label>
             <input
-              type="text"
-              name="deviceMapID"
-              value={formData.deviceMapID}
+              type="date"
+              name="accessDate"
+              value={formData.accessDate}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
@@ -155,71 +162,31 @@ const Form = ({ setFullData }) => {
           </div>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-600">
-              Devices:
+              Energy Saving Mode:
+            </label>
+            <select
+              name="algo_status"
+              value={formData.algo_status}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
+            >
+              <option value="0">Energy Saving Mode Off</option>
+              <option value="1">Energy Saving Mode On</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-600">
+              Total kWh:
             </label>
             <input
-              type="text"
-              name="devices"
-              value={formData.devices}
+              type="number"
+              name="total_kwh"
+              value={formData.total_kwh}
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
             />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-600">
-                Total kWh:
-              </label>
-              <input
-                type="number"
-                name="total_kwh"
-                value={formData.total_kwh}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-600">
-                AC Run Hours:
-              </label>
-              <input
-                type="number"
-                name="ac_run_hrs"
-                value={formData.ac_run_hrs}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-600">
-                AC Fan Hours:
-              </label>
-              <input
-                type="number"
-                name="ac_fan_hrs"
-                value={formData.ac_fan_hrs}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-600">
-                Algorithm Status:
-              </label>
-              <select
-                name="algo_status"
-                value={formData.algo_status}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-blue-300"
-              >
-                <option value="0">Energy Saving Mode Off</option>
-                <option value="1">Energy Saving Mode On</option>
-              </select>
-            </div>
           </div>
           <button
             type="submit"
@@ -228,7 +195,6 @@ const Form = ({ setFullData }) => {
             Submit
           </button>
         </form>
-        
       </div>
     </div>
   );
