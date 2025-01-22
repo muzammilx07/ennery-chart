@@ -8,67 +8,68 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import energyData from "../data/energyData.json"; // Update path if needed
 
-// Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-const EnergyBarChart = () => {
-  // State for chart data
+const EnergyBarChart = ({ fullData }) => {
   const [chartData, setChartData] = useState(null);
-
-  // State to toggle visibility of datasets
   const [showEnergySavingModeOn, setShowEnergySavingModeOn] = useState(true);
   const [showEnergySavingModeOff, setShowEnergySavingModeOff] = useState(true);
 
   useEffect(() => {
-    const labels = energyData.map((d) =>
-      new Date(d.createdAt.$date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    );
+    // Set energy data when fullData is received
+    const energyData = fullData; // Now using fullData
 
-    // Define energy consumption values
-    const valuesOn = energyData.map((d) => d.total_kwh * 0.6); // Example values for Energy Saving Mode ON
-    const valuesOff = energyData.map((d) => d.total_kwh * 0.4); // Example values for Energy Saving Mode OFF
+    // If energyData is available, process it
+    if (energyData) {
+      const labels = energyData.map((d) =>
+        new Date(d.createdAt.$date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      );
 
-    setChartData({
-      labels,
-      datasets: [
-        {
-          label: "Energy Saving Mode ON",
-          data: valuesOn,
-          backgroundColor: "rgba(54, 162, 235, 0.6)",
-          stack: "energy", // Ensure stacking with the same group name
-        },
-        {
-          label: "Energy Saving Mode OFF",
-          data: valuesOff,
-          backgroundColor: "rgba(255, 99, 132, 0.6)",
-          stack: "energy", // Ensure stacking with the same group name
-        },
-      ],
-    });
-  }, []);
+      const valuesOn = energyData.map((d) => d.total_kwh * 0.6);
+      const valuesOff = energyData.map((d) => d.total_kwh * 0.4);
+
+      setChartData({
+        labels,
+        datasets: [
+          {
+            label: "Energy Saving Mode ON",
+            data: valuesOn,
+            backgroundColor: "rgba(54, 162, 235, 0.6)",
+            stack: "energy",
+          },
+          {
+            label: "Energy Saving Mode OFF",
+            data: valuesOff,
+            backgroundColor: "rgba(255, 99, 132, 0.6)",
+            stack: "energy",
+          },
+        ],
+      });
+    }
+  }, [fullData]); // Re-run this effect when fullData changes
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false, // Legend is not required because we have checkboxes
+        display: false,
       },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.dataset.label}: ${context.raw.toFixed(2)} kWh`,
+          label: (context) =>
+            `${context.dataset.label}: ${context.raw.toFixed(2)} kWh`,
         },
       },
     },
     scales: {
       x: {
-        stacked: true, // Enable stacking on x-axis
+        stacked: true,
         title: {
           display: true,
           text: "Date",
@@ -76,10 +77,10 @@ const EnergyBarChart = () => {
         },
       },
       y: {
-        stacked: true, // Enable stacking on y-axis
+        stacked: true,
         beginAtZero: true,
         ticks: {
-          callback: (value) => `${value} kWh`, // Add units to Y-axis labels
+          callback: (value) => `${value} kWh`,
         },
         title: {
           display: true,
@@ -88,17 +89,19 @@ const EnergyBarChart = () => {
         },
       },
     },
-    barThickness: 50, // Adjust bar width
+    barThickness: 50,
   };
 
-  // Filter data based on checkboxes
   const filteredChartData = chartData && {
     ...chartData,
     datasets: chartData.datasets.filter((dataset) => {
       if (dataset.label === "Energy Saving Mode ON" && showEnergySavingModeOn) {
         return true;
       }
-      if (dataset.label === "Energy Saving Mode OFF" && showEnergySavingModeOff) {
+      if (
+        dataset.label === "Energy Saving Mode OFF" &&
+        showEnergySavingModeOff
+      ) {
         return true;
       }
       return false;
@@ -106,13 +109,11 @@ const EnergyBarChart = () => {
   };
 
   return (
-    <div className="bg-white shadow-md p-4 rounded-lg overflow-hidden w-1/2 h-full
-    ">
+    <div className="bg-white shadow-md p-4 rounded-lg overflow-hidden w-1/2 justify-center flex flex-col">
       <h2 className="text-xl font-semibold mb-4 text-center">
         Energy Consumed
       </h2>
 
-      {/* Checkbox Controls */}
       <div className="flex gap-4 mb-4">
         <label className="flex items-center gap-2">
           <input
@@ -132,17 +133,16 @@ const EnergyBarChart = () => {
         </label>
       </div>
 
-      {/* Chart Container */}
       <div
         style={{
-          overflowX: "auto", // Enable horizontal scrolling
+          overflowX: "auto",
           whiteSpace: "nowrap",
         }}
       >
         <div
           style={{
-            minWidth: `${Math.max(energyData.length * 120, 1000)}px`, // Dynamically calculate width
-            height: "500px", // Sufficient height for better visibility
+            minWidth: `${Math.max(fullData.length * 120, 1000)}px`,
+            height: "500px",
           }}
         >
           {filteredChartData ? (
@@ -157,6 +157,3 @@ const EnergyBarChart = () => {
 };
 
 export default EnergyBarChart;
-
-
-
